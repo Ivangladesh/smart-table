@@ -4,7 +4,7 @@
 #endif
 
 // Which pin on the Arduino is connected to the NeoPixels?
-#define PIN             23 // On Trinket or Gemma, suggest changing this to 1
+#define PIN             23
 #define TOP_LEDS        24
 #define BOTTOM_LEDS     24
 #define LEFT_LEDS       64
@@ -13,47 +13,81 @@
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
+// ***************************************
+// **********  Common Functions **********
+// ***************************************
 
-class Parameters {
-  public:
-    uint8_t R;
-    uint8_t G;
-    uint8_t B;
-    uint8_t Size;
-    int Position;
-    bool Fade;
-};
+// Apply LED color changes
+void showStrip() {
+  strip.show();
+}
 
-Parameters params;
+// Set a LED color (not yet visible)
+void setPixel(int Pixel, byte red, byte green, byte blue) {
+ #ifdef ADAFRUIT_NEOPIXEL_H 
+   // NeoPixel
+   strip.setPixelColor(Pixel, strip.Color(red, green, blue));
+ #endif
+ #ifndef ADAFRUIT_NEOPIXEL_H 
+   // FastLED
+   leds[Pixel].r = red;
+   leds[Pixel].g = green;
+   leds[Pixel].b = blue;
+ #endif
+}
 
+// Set all LEDs to a given color and apply it (visible)
+void setAll(byte red, byte green, byte blue) {
+  Serial.println("setAll()");
+  for(uint8_t i = 0; i < NUMPIXELS; i++ ) {
+    setPixel(i, red, green, blue); 
+  }
+  showStrip();
+}
+
+//Initialize led strip
 void initLedStrip(){
   strip.begin();
   strip.show();
 }
 
-void _waterfall(Parameters params)
+void _waterfall(int R, int G, int B, int size, int index)
 {
-  int left = params.Position;
-  int right = params.Position;
-  strip.setPixelColor(params.Position, params.R, params.G, params.B);
-  for (uint8_t j = 0; j < params.Size; j++)
+
+  index = index * size;
+
+  int left = index-1;
+  int right = index+1;
+  int leftArr [4];
+  int rightArr [4];
+
+  if(index == 0){
+    left = 176;
+  } else if(index == 176){
+    right = 0;
+  }
+
+  Serial.print("index\t\t"); Serial.println(index); Serial.print("\n");
+
+  size = size / 2;
+
+  setPixel(index, R,G,B);
+  
+  for (int i = 0; i < size; i++)
   {
-    right++;
+    leftArr[i] = left;
+    setPixel(left, R,G,B);
     left--;
-    Serial.println(left);
-    if(left < 0){
-      left = 176 - right;
-    }
-    if(params.Fade){
-      uint8_t fadeRed = params.R - floor(params.R / params.Size) * (j + 1) + 10;
-      uint8_t fadeGreen = params.G - floor(params.G / params.Size) * (j + 1) + 10;
-      uint8_t fadeBlue = params.B - floor(params.B / params.Size) * (j + 1) + 10;
-      strip.setPixelColor(right, strip.Color(fadeRed, fadeGreen, fadeBlue));
-      strip.setPixelColor(left, strip.Color(fadeRed, fadeGreen, fadeBlue));
-    } else{
-      strip.setPixelColor(right, strip.Color(params.R, params.G, params.B));
-      strip.setPixelColor(left, strip.Color(params.R, params.G, params.B));
+    if(i < size){
+      rightArr[i] = right;
+      setPixel(right, R,G,B);
+      right++;
     }
   }
-  strip.show();
+  String p1=",";
+  Serial.print("left\t\t"); Serial.println(leftArr[0] + p1 + leftArr[1] + p1 + leftArr[2] + p1 + leftArr[3]); Serial.print("\n");
+  Serial.print("right\t\t"); Serial.println(rightArr[0] + p1 + rightArr[1] + p1 + rightArr[2] + p1 + rightArr[3]); Serial.print("\n");
 }
+
+
+

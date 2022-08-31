@@ -13,11 +13,7 @@ Adafruit_MPR121 secondSensor = Adafruit_MPR121();
 
 // Keeps track of the last pins touched
 // so we know when buttons are 'released'
-uint16_t lasttouched = 0;
-uint16_t currtouched = 0;
-
-uint16_t lasttouched1 = 0;
-uint16_t currtouched1 = 0;
+uint16_t lasttouched, currtouched, lasttouched1, currtouched1 = 0;
 
 void initSensors(){
   Serial.println("Adafruit MPR121 Capacitive Touch sensor test"); 
@@ -27,23 +23,65 @@ void initSensors(){
 }
 
 void sensorStatus(){
-  for (uint8_t i=0; i<12; i++) {
+  // Get the currently touched pads
+  currtouched = firstSensor.touched();
+  currtouched1 = secondSensor.touched();
+
+  for (int i=0; i<12; i++) {
+
+    int secondTouchPosition = i + 13;
+
       if ((currtouched & _BV(i)) && !(lasttouched & _BV(i)) ) {
         Serial.print(i+1); Serial.println(" touched");
+        _waterfall(255,255,255,8, i);
       }
       // if it *was* touched and now *isnt*, alert!
       if (!(currtouched & _BV(i)) && (lasttouched & _BV(i)) ) {
         Serial.print(i+1); Serial.println(" released");
+        _waterfall(0,0,0,8, i);
       }
 
-      if ((currtouched1 & _BV(i)) && !(lasttouched1 & _BV(i)) ) {
-        Serial.print(i + 13); Serial.println(" touched");
+      if ((currtouched1 & _BV(i)) && !(lasttouched1 & _BV(i))) {
+        Serial.print(secondTouchPosition); Serial.println(" touched");
+        if(i < 10){
+          _waterfall(255,255,255,8, secondTouchPosition);
+        }
+        if(secondTouchPosition == 24){
+          setAll(0,0,0);
+        }
+        
       }
       // if it *was* touched and now *isnt*, alert!
-      if (!(currtouched1 & _BV(i)) && (lasttouched1 & _BV(i)) ) {
-        Serial.print(i + 13); Serial.println(" released");
+      if (!(currtouched1 & _BV(i)) && (lasttouched1 & _BV(i))) {
+        Serial.print(secondTouchPosition); Serial.println(" released");
+        if(i < 10){
+          _waterfall(0,0,0, 8,secondTouchPosition);
+        }  
       }
+      showStrip();
   }
+
+  // reset our state
+  lasttouched = currtouched;
+  lasttouched1 = currtouched1;
+
+}
+
+void sensorLoop(){
+  for (int i=0; i<12; i++)
+  {
+    if(firstSensor.touched()){
+      _waterfall(255,255,255,8, i);
+    } else{
+      _waterfall(0,0,0,8, i);
+    }
+    if(secondSensor.touched()){
+      _waterfall(255,255,255,8, i+13);
+    } else{
+      _waterfall(0,0,0,8, i+13);
+    }
+  }
+  
 }
 
 void extendDebbuging(Adafruit_MPR121 sensor){
@@ -69,19 +107,15 @@ void setup() {
   
   initSensors();
   initLedStrip();
+  setAll(0,0,0);
+  showStrip();
   
 }
 
 void loop() {
-  // Get the currently touched pads
-  currtouched = firstSensor.touched();
-  currtouched1 = secondSensor.touched();
-  
-  sensorStatus();
-  // reset our state
-  lasttouched = currtouched;
-  lasttouched1 = currtouched1;
 
+  sensorStatus();
+  //sensorLoop();
   // comment out this line for detailed data from the sensor!
   return;
   
@@ -90,5 +124,5 @@ void loop() {
   extendDebbuging(secondSensor);
   
   // put a delay so it isn't overwhelming
-  delay(100);
+  //delay(100);
 }
